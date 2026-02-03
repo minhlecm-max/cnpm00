@@ -52,7 +52,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // UI
     document.getElementById('table-number').textContent = table;
-    document.getElementById('cart-link').href = `./Cart.html?table=${table}`;
+    document.getElementById('cart-link').href =
+    `./cart.html?table=${table}`;
+
 
     renderMenu();
     updateCartBadge();

@@ -131,15 +131,14 @@ p.text-muted {
         });
 
         function updateQR(table) {
-            if (!table) return;
+    if (!table) return;
 
-            const basePath = location.pathname.replace(/\/[^\/]*$/, '');
+    const url = `${location.origin}${location.pathname.replace('qrMenu.html','')}menu.html?table=${table}`;
 
-            const url = `${location.origin}${basePath}/menu.html?table=${table}`;
+    qrCode.clear();
+    qrCode.makeCode(url);
+}
 
-            qrCode.clear();
-            qrCode.makeCode(url);
-        }
 
 
         tableInput.addEventListener('input', () => {

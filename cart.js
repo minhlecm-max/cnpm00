@@ -47,7 +47,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ✅ URL thiếu table → bổ sung
     if (!getTableFromURL()) {
-        window.location.replace(`./Cart.html?table=${table}`);
+        window.location.replace(`./cart.html?table=${table}`);
+
         return;
     }
 

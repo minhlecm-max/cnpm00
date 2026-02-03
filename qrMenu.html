@@ -133,7 +133,8 @@ p.text-muted {
         function updateQR(table) {
     if (!table) return;
 
-    const url = `${location.origin}${location.pathname.replace('qrMenu.html','')}menu.html?table=${table}`;
+    const url = `https://minhlecm-max.github.io/cnpm00/menu.html?table=${table}`;
+
 
     qrCode.clear();
     qrCode.makeCode(url);

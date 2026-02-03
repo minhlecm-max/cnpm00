@@ -134,6 +134,7 @@ p.text-muted {
             if (!table) return;
 
             const basePath = location.pathname.replace(/\/[^\/]*$/, '');
+
             const url = `${location.origin}${basePath}/menu.html?table=${table}`;
 
             qrCode.clear();

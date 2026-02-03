@@ -1,178 +1,68 @@
-const MAX_ITEMS_PER_CATEGORY = 8;
-
-/* ================= TABLE ================= */
-function getTableFromURL() {
-    return new URLSearchParams(window.location.search).get('table');
-}
-
-function getSelectedTable() {
-    return localStorage.getItem('selectedTable');
-}
-
-/* ================= CART STORAGE ================= */
-function getAllCarts() {
-    return JSON.parse(localStorage.getItem('cartsByTable') || '{}');
-}
-
-function saveAllCarts(carts) {
-    localStorage.setItem('cartsByTable', JSON.stringify(carts));
+function getTable() {
+  return new URLSearchParams(location.search).get('table')
+      || localStorage.getItem('table');
 }
 
 function getCart() {
-    const table = getSelectedTable();
-    const carts = getAllCarts();
-    return carts[table] || [];
+  return JSON.parse(localStorage.getItem('cart_' + getTable()) || '[]');
 }
 
 function saveCart(cart) {
-    const table = getSelectedTable();
-    const carts = getAllCarts();
-    carts[table] = cart;
-    saveAllCarts(carts);
+  localStorage.setItem('cart_' + getTable(), JSON.stringify(cart));
 }
 
-/* ================= PAGE PROTECT ================= */
 document.addEventListener('DOMContentLoaded', () => {
-    let table = getTableFromURL() || getSelectedTable();
+  const table = getTable();
+  if (!table) {
+    alert('Vui lòng quét QR');
+    location.href = '/cnpm00/index.html';
+    return;
+  }
 
-    if (!table) {
-        alert('Vui lòng quét QR trên bàn để gọi món');
-        window.location.replace('./index.html');
-        return;
-    }
+  localStorage.setItem('table', table);
+  document.getElementById('table-number').innerText = table;
+  document.getElementById('cart-link').href = `/cnpm00/cart.html?table=${table}`;
 
-    // lưu bàn chuẩn
-    localStorage.setItem('selectedTable', table);
-
-    // URL thiếu table → bổ sung
-    if (!getTableFromURL()) {
-        window.location.replace(`./menu.html?table=${table}`);
-        return;
-    }
-
-    // UI
-    document.getElementById('table-number').textContent = table;
-    document.getElementById('cart-link').href =
-    `./cart.html?table=${table}`;
-
-
-    renderMenu();
-    updateCartBadge();
-    createImageModal();
+  renderMenu();
+  updateCartCount();
 });
 
-/* ================= MENU ================= */
 function renderMenu() {
-    const container = document.getElementById('menu-items-container');
-    if (!container) return;
+  const box = document.getElementById('menu-items-container');
+  const cats = {};
 
-    const categories = {};
-    menu.forEach(item => {
-        (categories[item.category] ||= []).push(item);
-    });
+  menu.forEach(i => (cats[i.category] ??= []).push(i));
 
-    container.innerHTML = Object.entries(categories).map(([category, items]) => {
-        const display = items.slice(0, MAX_ITEMS_PER_CATEGORY);
-        const more = items.length > MAX_ITEMS_PER_CATEGORY;
-
-        return `
-        <div class="category-section mb-4">
-            <div class="d-flex justify-content-between align-items-center">
-                <h4 class="category-title">${category}</h4>
-                ${more ? `
-                <a class="btn-see-more"
-                   href="./category.html?category=${encodeURIComponent(category)}&table=${getSelectedTable()}">
-                    Xem thêm <i class="fas fa-arrow-right"></i>
-                </a>` : ''}
+  box.innerHTML = Object.keys(cats).map(cat => `
+    <h3 class="mt-4">${cat}</h3>
+    <div class="row">
+      ${cats[cat].map(i => `
+        <div class="col-6 col-md-3 mb-3">
+          <div class="card h-100">
+            <img src="${i.image}" class="card-img-top">
+            <div class="card-body">
+              <h6>${i.name}</h6>
+              <b>${i.price.toLocaleString()}đ</b>
+              <button class="btn btn-success w-100 mt-2"
+                onclick="addToCart(${i.id})">Thêm</button>
             </div>
-
-            <div class="row mt-3">
-                ${display.map(item => `
-                <div class="col-md-6 col-lg-3 mb-3">
-                    <div class="menu-card">
-                        <img src="${item.image}" class="menu-image"
-                             onclick="openImageModal('${item.image}','${item.name}')">
-                        <div class="menu-info">
-                            <h5>${item.name}</h5>
-                            <p class="menu-description">${item.description || ''}</p>
-                            <div class="menu-price">${formatPrice(item.price)}</div>
-                            <div class="d-flex justify-content-between mt-2">
-                                <div>
-                                    <button onclick="adjustQty(${item.id},-1)">-</button>
-                                    <span id="qty-${item.id}">1</span>
-                                    <button onclick="adjustQty(${item.id},1)">+</button>
-                                </div>
-                                <button class="btn-add" onclick="addToCart(${item.id})">
-                                    <i class="fas fa-plus"></i> Thêm
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>`).join('')}
-            </div>
-        </div>`;
-    }).join('');
-}
-
-/* ================= ACTIONS ================= */
-function adjustQty(id, change) {
-    const el = document.getElementById(`qty-${id}`);
-    el.textContent = Math.max(1, +el.textContent + change);
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
 }
 
 function addToCart(id) {
-    const item = menu.find(i => i.id === id);
-    const qty = +document.getElementById(`qty-${id}`).textContent;
-
-    let cart = getCart();
-    const exist = cart.find(i => i.id === id);
-
-    exist ? exist.quantity += qty : cart.push({ ...item, quantity: qty });
-
-    saveCart(cart);
-    updateCartBadge();
-    showToast(`Đã thêm ${qty} "${item.name}" cho Bàn ${getSelectedTable()}`);
-    document.getElementById(`qty-${id}`).textContent = 1;
+  const item = menu.find(i => i.id === id);
+  let cart = getCart();
+  const found = cart.find(i => i.id === id);
+  found ? found.qty++ : cart.push({ ...item, qty: 1 });
+  saveCart(cart);
+  updateCartCount();
 }
 
-function updateCartBadge() {
-    document.getElementById('cart-count').textContent =
-        getCart().reduce((s, i) => s + i.quantity, 0);
-}
-
-/* ================= UI ================= */
-function formatPrice(p) {
-    return p.toLocaleString('vi-VN') + 'đ';
-}
-
-function showToast(msg) {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 2000);
-}
-
-/* ================= IMAGE MODAL ================= */
-function createImageModal() {
-    const modal = document.createElement('div');
-    modal.id = 'image-modal';
-    modal.className = 'image-modal';
-    modal.innerHTML = `
-        <div class="image-modal-content">
-            <span class="image-modal-close" onclick="closeImageModal()">&times;</span>
-            <img id="modal-image">
-            <p id="modal-caption"></p>
-        </div>`;
-    document.body.appendChild(modal);
-    modal.onclick = e => e.target === modal && closeImageModal();
-}
-
-function openImageModal(src, name) {
-    document.getElementById('image-modal').style.display = 'flex';
-    document.getElementById('modal-image').src = src;
-    document.getElementById('modal-caption').textContent = name;
-}
-
-function closeImageModal() {
-    document.getElementById('image-modal').style.display = 'none';
+function updateCartCount() {
+  document.getElementById('cart-count').innerText =
+    getCart().reduce((s, i) => s + i.qty, 0);
 }
